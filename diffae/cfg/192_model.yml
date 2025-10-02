@@ -1,0 +1,142 @@
+general:
+    device: cuda
+    seed: 42
+    output_root: ./output
+    data_name: embed
+
+model:
+    p_uncond: 0.1
+    network:
+        unet:
+            image_size: 192
+            in_channels: 3
+            out_channels: 3
+            model_channels: 96
+            # emb_channels: 512
+            channel_multipliers: [1, 1, 2, 2, 4, 4]
+            num_resnet_blocks: 2
+            resnet_dropout: 0.1
+            attn_resolution: []
+            use_conv_resample: True
+            num_groups: 32
+            condition_style: 'add'
+        encoder:
+            use: True
+            cond: False
+            cond_proj_dim: 512
+            cond_smoothing: False
+            image_size: 192
+            in_channels: 3
+            out_channels: 3
+            model_channels: 96
+            emb_channels: 512
+            channel_multipliers: [1, 1, 2, 2, 4, 4, 4]
+            num_resnet_blocks: 2
+            resnet_dropout: 0.1
+            attn_resolution: []
+            use_conv_resample: True
+            num_groups: 32
+            gaussian: True
+            kl_weight: 0.001
+    timesteps:
+        num: 1000
+        sample: uniform
+    beta:
+        schedule: cosine
+        linear:
+            start: 0.0001
+            end: 0.02
+        cosine:
+            s: 0.008
+            max_beta: 0.999
+    conditioning:
+        use_attr: True
+
+train:
+    epoch: 10000
+    fp16: False
+    grad_accum_steps: 1
+    clip_grad_norm: 1.0
+    log_interval: 50
+    save_interval: 50
+    ema:
+        use_ema: True
+        decay: 0.9999
+        update_every_steps: 1
+        skip_steps: 2000
+    dataset: []
+    #     - name: Resize
+    #       params:
+    #           size: [256, 256]
+    #     - name: RandomHorizontalFlip
+    #       params:
+    #           p: 0.5
+    #     - name: ToTensor
+    #       params: {}
+    #     - name: Normalize
+    #       params:
+    #           mean: [0.5, 0.5, 0.5]
+    #           std: [0.5, 0.5, 0.5]
+    dataloader:
+        batch_size: 32
+        shuffle: True
+        num_workers: 4
+        pin_memory: True
+        drop_last: True
+    loss:
+        name: SimpleLoss
+    optimizer:
+        name: Adam
+        params:
+            lr: 0.0001
+            weight_decay: 0
+
+test:
+    dataset: []
+    #     - name: Resize
+    #       params:
+    #           size: [256, 256]
+    #     - name: ToTensor
+    #       params: {}
+    #     - name: Normalize
+    #       params:
+    #           mean: [0.5, 0.5, 0.5]
+    #           std: [0.5, 0.5, 0.5]
+    dataloader:
+        batch_size: 32
+        shuffle: False
+        num_workers: 4
+        pin_memory: True
+        drop_last: False
+    ema:
+        use: True
+
+classifier:
+    num_class: 40
+    train:
+        epoch: 500
+        fp16: False
+        grad_accum_steps: 1
+        clip_grad_norm: 0
+        log_interval: 1000
+        save_interval: 100
+        dataloader:
+            batch_size: 32
+            shuffle: True
+            num_workers: 1
+            pin_memory: True
+            drop_last: True
+        loss:
+            name: BCEWithLogitsLoss
+        optimizer:
+            name: Adam
+            params:
+                lr: 0.001
+                weight_decay: 0
+    test:
+        dataloader:
+            batch_size: 32
+            shuffle: false
+            num_workers: 4
+            pin_memory: true
+            drop_last: false
